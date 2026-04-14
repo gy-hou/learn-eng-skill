@@ -1,6 +1,6 @@
 # learn-eng-skill
 
-一个面向中文学习者的英语学习 Skill 项目，支持在 Codex 中进行：
+一个面向中文学习者的英语学习 Skill 项目，支持在 Codex、Claude Code 和通用 Agent 中使用：
 - 难词分析
 - 长难句拆解
 - 段落逻辑理解
@@ -21,7 +21,7 @@
 - Test Mode 选择题训练（按错题优先）
 - 学习数据自动沉淀到本地仓库（可持续迭代）
 
-## 使用前准备（Codex）
+## 使用前准备（Codex / Claude Code / 通用 Agent）
 1. 获取 Codex（官方入口）
 - 产品页：[OpenAI Codex](https://openai.com/codex)
 - 快速开始页：[Get started with Codex](https://openai.com/codex/get-started/)
@@ -29,7 +29,7 @@
 2. 克隆仓库
 ```bash
 git clone git@github.com:EmbraceAGI/Mr.G-Your-AI-English-all-language-Tutor.git
-cd Mr.G-Your-AI-English-all-language-Tutor
+cd learn-eng-skill
 ```
 
 3. Skill 目录
