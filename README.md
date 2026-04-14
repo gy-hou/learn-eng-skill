@@ -1,5 +1,21 @@
 # learn-eng-skill
 
+> [!TIP]
+> 原对应 Prompt 仓库创建于 **2023-06-18**，已获得 **85+ stars**。
+> 如果你对原始 Prompt 体系感兴趣，可前往：
+> **https://github.com/EmbraceAGI/Mr.G-Your-AI-English-all-language-Tutor**
+
+## 项目介绍图（按顺序）
+
+![01](assets/1.PNG)
+![02](assets/2.PNG)
+![03](assets/3.PNG)
+![04](assets/4.PNG)
+![05](assets/5.PNG)
+![06](assets/6.PNG)
+![07](assets/7.PNG)
+![08](assets/8.PNG)
+
 一个面向中文学习者的英语学习 Skill 项目，支持在 Codex、Claude Code 和通用 Agent 中使用：
 - 难词分析
 - 长难句拆解
