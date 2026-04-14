@@ -28,7 +28,7 @@
 
 2. 克隆仓库
 ```bash
-git clone git@github.com:EmbraceAGI/Mr.G-Your-AI-English-all-language-Tutor.git
+git clone git@github.com:gy-hou/learn-eng-skill.git
 cd learn-eng-skill
 ```
 
