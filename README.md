@@ -47,6 +47,8 @@ git clone --depth=1 https://github.com/gy-hou/learn-eng-skill.git && cd learn-en
 skills/
 ├── learn-eng/                  # 通用核心（唯一真源）
 │   ├── SKILL.md
+│   ├── STATE.md
+│   ├── TESTMODE.md
 │   ├── user.md
 │   ├── vocab-repo.md
 │   ├── stenc-repo.md

@@ -20,6 +20,11 @@ git clone --depth=1 https://github.com/gy-hou/learn-eng-skill.git && cd learn-en
 ## 通用架构
 核心目录：`skills/learn-eng/`
 
+规则分层（当前）：
+- `SKILL.md`：总入口（路由 + 输出契约）
+- `STATE.md`：状态持久化规则
+- `TESTMODE.md`：测试与复习调度规则
+
 Agent 入口（当前共享核心，后续可拆分）：
 - `skills/codex/learn-eng`
 - `skills/claude/learn-eng`

@@ -179,68 +179,16 @@ Return:
 - Difficulty hotspots
 - Learner-level paraphrase
 
-## Auto-Categorize Learning Repos
-After processing user input, auto-store hard items:
-- Vocabulary units -> `vocab-repo.md`
-- Long/difficult sentences or paragraph lines -> `stenc-repo.md`
-
-## Vocab Card Persistence (must do)
-After every Vocabulary Mode output:
-1. Extract two key fields from the generated card:
-- `Vocabulary`
-- `Mnemonic`
-2. Upsert into `vocabs.csv` with columns:
-- `Vocabulary`
-- `Mnemonic`
-- `TestErrors`
-- `Stage`
-- `LastReviewAt`
-- `NextReviewAt`
-- `CorrectStreak`
-- `TotalReviews`
-- `LastUpdatedAt`
-3. Keep `TestErrors` synchronized with miss count, and keep stage/review timestamps updated by test results.
-
-Accepted extraction styles include lines like:
-- `Vocabulary: Cosmology`
-- `Mnemonic: cosmo (universe) + -logy (study). Think "study of cosmos = cosmology".`
-
-## Test Mode (Iterative Learning, MCQ-only)
-Trigger when user asks for `test-mode` or `/test-mode`.
-
-Hard rule:
-- In `test-mode`, use multiple-choice only by default.
-- Do not output open-ended/free-response questions unless user explicitly asks.
-
-Question format:
-1. Vocabulary questions
-- One vocabulary item -> one question only.
-- Use standard `A/B/C` single-choice meaning questions.
-- Do not add synonym multi-select by default.
-
-2. Long-sentence questions
-- Must display the original sentence first.
-- Then generate exactly three targeted MCQs:
-- `Meaning MCQ`: choose what the sentence mainly says.
-- `Function MCQ`: choose the grammar function of a highlighted clause/chunk.
-- `Detail MCQ`: test one explicit detail (scope, negation, condition, or modifier target).
-
-3. Difficulty loop
-- Pull items from `vocab-repo.md` and `stenc-repo.md`.
-- For vocabulary, apply Ebbinghaus scheduling via `vocabs.csv` (`Stage`, `NextReviewAt`, `CorrectStreak`, `TotalReviews`).
-- Prioritize due words first (`NextReviewAt <= now`), then high-miss items.
-- After checking answers, update misses/correctness and sync `TestErrors` + next review schedule.
-
-## Revision Rules (Strict)
-Command:
+### D) Revise Mode
+Trigger:
 - `/revise <scope> <instruction>`
 
-Hard behavior:
-1. Revise only the requested `scope`.
-2. Keep all non-target scopes unchanged.
-3. If no prior result exists, ask user to run base analysis first.
-4. If scope is invalid, return available scopes.
-5. If instruction is vague, default to: `clearer + shorter + level-aligned`.
+Behavior:
+- Revise only the requested scope.
+- Keep all non-target scopes unchanged.
+- If no prior result exists, ask user to run base analysis first.
+- If scope is invalid, return available scopes.
+- If instruction is vague, default to: `clearer + shorter + level-aligned`.
 
 Allowed scopes:
 - `definition`
@@ -248,6 +196,20 @@ Allowed scopes:
 - `mnemonic`
 - `structure`
 - `paraphrase`
+
+### E) Test Mode (User-Facing Contract)
+Trigger:
+- `test-mode`, `/test-mode`, `test me`, `quiz`
+
+Output rules:
+- Use MCQ by default; avoid free-response unless user explicitly asks.
+- Vocabulary: one item -> one `A/B/C` meaning MCQ.
+- Long sentence: show original sentence, then exactly three MCQs:
+  - `Meaning MCQ`
+  - `Function MCQ`
+  - `Detail MCQ`
+- Keep prompts concise and learner-level aligned.
+- Detailed selection, scoring, and stage updates are defined in `TESTMODE.md`.
 
 ## Learner Tier Calibration
 Supported tiers:
@@ -268,6 +230,10 @@ Exam-based fallback:
 ## User-Facing Rule
 Do not introduce scripts, code commands, or file operations in normal tutoring replies.
 Only provide technical commands when user explicitly asks for setup, automation, or repository management.
+
+## Internal Specs (Load On Demand)
+- For persistence rules, read `STATE.md` only when saving or updating learning records.
+- For quiz / review behavior, read `TESTMODE.md` only when the user requests testing or revision practice.
 
 ## Portability
 Keep logic provider-neutral for future Claude Code adapter.
