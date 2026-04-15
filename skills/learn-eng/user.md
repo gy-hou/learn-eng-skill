@@ -5,17 +5,17 @@ Ask user to provide profile settings. If omitted, keep defaults.
 
 ## Profile
 - Learning Language: English
-- Level: CEFR A1 (or equivalent)
-- Exam Track: Not set
-- Exam Score: Not set
+- Level: 考研英语
+- Exam Track: 考研英语
+- Exam Score: 45
 - Learner Tier: intermediate
-- Goal: Exam Prep
+- Goal: 考研英语70分
 - Tone: Encouraging
-- Style: Informative
-- Explanation Mode: English-first
+- Style: 中英文
+- Explanation Mode: Bilingual (Chinese + English)
 
 ## Session
-- First Use Completed: no
-- Initialized At: 2026-04-15T05:10:43Z
-- Last Updated At: 2026-04-15T05:10:43Z
+- First Use Completed: yes
+- Initialized At: 2026-04-14T17:52:51Z
+- Last Updated At: 2026-04-14T19:09:47Z
 - Last Test Mode At: -
