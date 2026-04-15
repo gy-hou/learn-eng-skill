@@ -1,5 +1,10 @@
 # learn-eng-skill
 
+## 一键下载（复制即用）
+```bash
+git clone --depth=1 https://github.com/gy-hou/learn-eng-skill.git && cd learn-eng-skill
+```
+
 > [!TIP]
 > 原对应 Prompt 仓库创建于 **2023-06-18**，已获得 **85+ stars**。
 > 如果你对原始 Prompt 体系感兴趣，可前往：
@@ -65,7 +70,7 @@ skills/
 
 2. 克隆仓库
 ```bash
-git clone git@github.com:gy-hou/learn-eng-skill.git
+git clone https://github.com/gy-hou/learn-eng-skill.git
 cd learn-eng-skill
 ```
 

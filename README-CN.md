@@ -1,5 +1,10 @@
 # learn-eng-skill（中文说明）
 
+## 一键下载（复制即用）
+```bash
+git clone --depth=1 https://github.com/gy-hou/learn-eng-skill.git && cd learn-eng-skill
+```
+
 [English/中文主文档](./README.md)
 
 这是一个面向中文用户的英语学习 Skill 项目，重点在于：
