@@ -22,8 +22,10 @@ git clone --depth=1 https://github.com/gy-hou/learn-eng-skill.git && cd learn-en
 
 规则分层（当前）：
 - `SKILL.md`：总入口（路由 + 输出契约）
+- `PROFILE.md`：首次使用与画像推断规则
 - `STATE.md`：状态持久化规则
 - `TESTMODE.md`：测试与复习调度规则
+- `PLATFORM.md`：Codex / Claude / OpenClaw 平台差异规则
 
 Agent 入口（当前共享核心，后续可拆分）：
 - `skills/codex/learn-eng`

@@ -2,6 +2,7 @@
 
 Core instructions: `../SKILL.md`  
 Platform entry point: `../../../OPENCLAW.md`
+Platform policy source: `../PLATFORM.md`
 
 ---
 
