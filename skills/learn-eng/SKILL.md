@@ -1,6 +1,9 @@
 ---
 name: learn-eng
 description: Personalized English learning skill for vocabulary, sentence, and paragraph analysis with iterative practice. Use when users need difficult-word tutoring, sentence structure explanation, paragraph logic analysis, automatic difficulty repo tracking, and test-mode drills.
+homepage: https://github.com/gy-hou/learn-eng-skill
+user-invocable: true
+metadata: {"openclaw":{"emoji":"📘","homepage":"https://github.com/gy-hou/learn-eng-skill","always":true}}
 ---
 
 # Learn Eng

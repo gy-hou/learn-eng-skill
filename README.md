@@ -24,6 +24,10 @@
 
 项目目标：把“背单词 + 读句子 + 做测试 + 复盘”串成一条稳定、可积累的学习链路。
 
+## 推荐使用方式
+- 推荐优先使用 `Claude Code` / `Codex` 这类具备本地文件读写能力的 Agent。
+- 原因：`user.md`、`vocab-repo.md`、`stenc-repo.md`、`vocabs.csv` 可自动更新，学习链路更稳定，迭代效果通常更好。
+
 ## 核心能力
 - 自动路由三类输入：词汇 / 句子 / 段落
 - 词汇卡片化输出（定义、发音、例句、助记、搭配、误用提醒等）
@@ -70,6 +74,24 @@ cd learn-eng-skill
 - Codex 兼容入口：`skills/codex/learn-eng/SKILL.md`
 - Claude 兼容入口：`skills/claude/learn-eng/SKILL.md`
 - OpenClaw 兼容入口：`skills/openclaw/learn-eng/SKILL.md`
+- OpenClaw 入口配置：`OPENCLAW.md`
+
+4. OpenClaw 最小配置（可选）
+在 `~/.openclaw/openclaw.json` 中启用并显式允许 `learn-eng`：
+```json
+{
+  "skills": {
+    "entries": {
+      "learn-eng": { "enabled": true }
+    }
+  },
+  "agents": {
+    "defaults": {
+      "skills": ["learn-eng"]
+    }
+  }
+}
+```
 
 ## 首次使用（5 项配置）
 首次会采集以下配置（可缺省）：
