@@ -190,8 +190,13 @@ After every Vocabulary Mode output:
 - `Vocabulary`
 - `Mnemonic`
 - `TestErrors`
+- `Stage`
+- `LastReviewAt`
+- `NextReviewAt`
+- `CorrectStreak`
+- `TotalReviews`
 - `LastUpdatedAt`
-3. Keep `TestErrors` synchronized with that word's miss count from testing.
+3. Keep `TestErrors` synchronized with miss count, and keep stage/review timestamps updated by test results.
 
 Accepted extraction styles include lines like:
 - `Vocabulary: Cosmology`
@@ -219,8 +224,9 @@ Question format:
 
 3. Difficulty loop
 - Pull items from `vocab-repo.md` and `stenc-repo.md`.
-- Prioritize high-miss items first.
-- After checking answers, update misses and sync to `vocabs.csv` `TestErrors`.
+- For vocabulary, apply Ebbinghaus scheduling via `vocabs.csv` (`Stage`, `NextReviewAt`, `CorrectStreak`, `TotalReviews`).
+- Prioritize due words first (`NextReviewAt <= now`), then high-miss items.
+- After checking answers, update misses/correctness and sync `TestErrors` + next review schedule.
 
 ## Revision Rules (Strict)
 Command:

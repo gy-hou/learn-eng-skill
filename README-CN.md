@@ -1,50 +1,39 @@
-# Mr.G - AI 语言学习助手（精简版）
+# learn-eng-skill（中文说明）
 
-[English](./README.md) | 中文
+[English/中文主文档](./README.md)
 
-这是 Mr.G 学习体系的清理版仓库，保留核心能力，移除噪音内容，便于持续迭代。
+这是一个面向中文用户的英语学习 Skill 项目，重点在于：
+- 单词卡片化学习
+- 长难句结构拆解
+- 段落逻辑分析
+- 错题驱动 + 艾宾浩斯复习调度
 
-## 项目能力
-- 生成单词记忆卡（词源/联想记忆法）。
-- 对长难句进行结构化拆解。
-- 分析段落逻辑并给出适配用户水平的改写。
-- 基于个人错题库进行迭代测试（test-mode）。
+## 通用架构
+核心目录：`skills/learn-eng/`
 
-## 当前重点：Codex Skill
-- Skill 目录：[`skills/codex/learn-eng/`](./skills/codex/learn-eng/)
-- Skill 名称：`$learn-eng`
+Agent 入口（当前共享核心，后续可拆分）：
+- `skills/codex/learn-eng`
+- `skills/claude/learn-eng`
+- `skills/openclaw/learn-eng`
 
-核心文件：
-- [`skills/codex/learn-eng/SKILL.md`](./skills/codex/learn-eng/SKILL.md)
-- [`skills/codex/learn-eng/agents/openai.yaml`](./skills/codex/learn-eng/agents/openai.yaml)
-- [`skills/codex/learn-eng/references/output-contracts.md`](./skills/codex/learn-eng/references/output-contracts.md)
-
-学习循环数据文件：
-- [`skills/codex/learn-eng/user.md`](./skills/codex/learn-eng/user.md)
-- [`skills/codex/learn-eng/vocab-repo.md`](./skills/codex/learn-eng/vocab-repo.md)
-- [`skills/codex/learn-eng/stenc-repo.md`](./skills/codex/learn-eng/stenc-repo.md)
-
-脚本：
-- [`skills/codex/learn-eng/scripts/learn_eng_repo.py`](./skills/codex/learn-eng/scripts/learn_eng_repo.py)
-- [`skills/codex/learn-eng/scripts/find_template_entry.py`](./skills/codex/learn-eng/scripts/find_template_entry.py)
-
-## 快速命令
-在 `skills/codex/learn-eng/` 目录执行：
-
-```bash
-python3 scripts/learn_eng_repo.py init
-python3 scripts/learn_eng_repo.py set-profile --tier intermediate --goal "Exam Prep"
-python3 scripts/learn_eng_repo.py ingest --input "abstruse, obdurate, <长难句>"
-python3 scripts/learn_eng_repo.py test-mode --vocab-count 5 --sentence-count 3
-python3 scripts/learn_eng_repo.py mark-missed --word abstruse
+## 首次使用
+直接回复：
+```text
+Language=...; Level=...; Score=...; Goal=...; Style=...
 ```
 
-## Prompt 资产
-- [`Prompts/GPT4-browser-version.md`](./Prompts/GPT4-browser-version.md)
-- [`Prompts/2024-mnemonics-only.md`](./Prompts/2024-mnemonics-only.md)
+## 日常使用
+- 发单词/词组：词汇分析
+- 发一句话：句子结构分析
+- 发一段话：段落逻辑分析
+- 输入 `test-mode`：开始选择题测试
+- 批改后调用 `mark-correct` / `mark-missed` 更新记忆阶段
 
-## 历史归档
-历史版本和旧素材已迁移到 [`old-assets/`](./old-assets/)，主目录保持干净。
+## 数据文件
+- `skills/learn-eng/user.md`
+- `skills/learn-eng/vocab-repo.md`
+- `skills/learn-eng/stenc-repo.md`
+- `skills/learn-eng/vocabs.csv`
 
 ## 许可证
-MIT License，见 [`LICENSE`](./LICENSE)。
+MIT License（见 [LICENSE](./LICENSE)）。

@@ -8,6 +8,7 @@ Commands:
   ingest
   test-mode
   mark-missed
+  mark-correct
   save-cards
 """
 
@@ -18,7 +19,7 @@ import csv
 import random
 import re
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 
@@ -49,9 +50,22 @@ INLINE_CARD_RE = re.compile(
     r"Vocabulary\s*:\s*([^,\n，]+)\s*[,，]\s*Mnemonic\s*:\s*([^\n]+)",
     re.IGNORECASE,
 )
-VOCAB_CSV_FIELDS = ["Vocabulary", "Mnemonic", "TestErrors", "LastUpdatedAt"]
+VOCAB_CSV_FIELDS = [
+    "Vocabulary",
+    "Mnemonic",
+    "TestErrors",
+    "Stage",
+    "LastReviewAt",
+    "NextReviewAt",
+    "CorrectStreak",
+    "TotalReviews",
+    "LastUpdatedAt",
+]
+EBBINGHAUS_DAYS = [1, 2, 4, 7, 15, 30]
+MAX_STAGE = len(EBBINGHAUS_DAYS) - 1
 
 VOCAB_MEANING_BANK: dict[str, str] = {
+
     "cosmology": "the scientific study of the origin and structure of the universe",
     "craven": "cowardly and lacking courage",
     "sycophancy": "insincere praise toward powerful people to gain advantage",
@@ -73,6 +87,38 @@ class RepoRow:
 
 def now_iso() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+
+
+def dt_to_iso(dt: datetime) -> str:
+    return dt.astimezone(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+
+
+def parse_iso_utc(value: str) -> datetime | None:
+    s = (value or "").strip()
+    if not s or s == "-":
+        return None
+    try:
+        return datetime.fromisoformat(s.replace("Z", "+00:00")).astimezone(timezone.utc)
+    except Exception:
+        return None
+
+
+def clamp_stage(value: int) -> int:
+    return max(0, min(MAX_STAGE, value))
+
+
+def empty_vocab_card(vocab: str, mnemonic: str = "") -> dict[str, str]:
+    return {
+        "Vocabulary": collapse_ws(vocab),
+        "Mnemonic": collapse_ws(mnemonic),
+        "TestErrors": "0",
+        "Stage": "0",
+        "LastReviewAt": "-",
+        "NextReviewAt": "-",
+        "CorrectStreak": "0",
+        "TotalReviews": "0",
+        "LastUpdatedAt": now_iso(),
+    }
 
 
 def collapse_ws(text: str) -> str:
@@ -393,10 +439,27 @@ def read_vocab_cards(path: Path) -> list[dict[str, str]]:
 
             if not normalized["Vocabulary"]:
                 continue
+
+            # Backward compatibility: populate new spaced-repetition fields when missing.
             if not normalized["TestErrors"]:
                 normalized["TestErrors"] = "0"
+            if not normalized["Stage"]:
+                normalized["Stage"] = "0"
+            if not normalized["LastReviewAt"]:
+                normalized["LastReviewAt"] = "-"
+            if not normalized["NextReviewAt"]:
+                normalized["NextReviewAt"] = "-"
+            if not normalized["CorrectStreak"]:
+                normalized["CorrectStreak"] = "0"
+            if not normalized["TotalReviews"]:
+                normalized["TotalReviews"] = "0"
             if not normalized["LastUpdatedAt"]:
                 normalized["LastUpdatedAt"] = "-"
+
+            normalized["Stage"] = str(clamp_stage(_to_int(normalized["Stage"])))
+            normalized["TestErrors"] = str(max(0, _to_int(normalized["TestErrors"])))
+            normalized["CorrectStreak"] = str(max(0, _to_int(normalized["CorrectStreak"])))
+            normalized["TotalReviews"] = str(max(0, _to_int(normalized["TotalReviews"])))
 
             key = collapse_ws(normalized["Vocabulary"]).lower()
             if key not in seen_idx:
@@ -408,11 +471,31 @@ def read_vocab_cards(path: Path) -> list[dict[str, str]]:
             existing = rows[idx]
             if not existing.get("Mnemonic") and normalized.get("Mnemonic"):
                 existing["Mnemonic"] = normalized["Mnemonic"]
-            existing_err = _to_int(existing.get("TestErrors", "0"))
-            incoming_err = _to_int(normalized.get("TestErrors", "0"))
-            if incoming_err > existing_err:
-                existing["TestErrors"] = str(incoming_err)
-                existing["LastUpdatedAt"] = normalized.get("LastUpdatedAt", existing.get("LastUpdatedAt", "-"))
+
+            # Merge duplicates by keeping stronger learning progress.
+            if _to_int(normalized.get("TestErrors", "0")) > _to_int(existing.get("TestErrors", "0")):
+                existing["TestErrors"] = normalized["TestErrors"]
+            if _to_int(normalized.get("Stage", "0")) > _to_int(existing.get("Stage", "0")):
+                existing["Stage"] = normalized["Stage"]
+            if _to_int(normalized.get("CorrectStreak", "0")) > _to_int(existing.get("CorrectStreak", "0")):
+                existing["CorrectStreak"] = normalized["CorrectStreak"]
+            if _to_int(normalized.get("TotalReviews", "0")) > _to_int(existing.get("TotalReviews", "0")):
+                existing["TotalReviews"] = normalized["TotalReviews"]
+
+            n_next = parse_iso_utc(normalized.get("NextReviewAt", ""))
+            e_next = parse_iso_utc(existing.get("NextReviewAt", ""))
+            if n_next and (not e_next or n_next < e_next):
+                existing["NextReviewAt"] = normalized["NextReviewAt"]
+
+            n_last = parse_iso_utc(normalized.get("LastReviewAt", ""))
+            e_last = parse_iso_utc(existing.get("LastReviewAt", ""))
+            if n_last and (not e_last or n_last > e_last):
+                existing["LastReviewAt"] = normalized["LastReviewAt"]
+
+            n_updated = parse_iso_utc(normalized.get("LastUpdatedAt", ""))
+            e_updated = parse_iso_utc(existing.get("LastUpdatedAt", ""))
+            if n_updated and (not e_updated or n_updated > e_updated):
+                existing["LastUpdatedAt"] = normalized["LastUpdatedAt"]
 
     return rows
 
@@ -449,23 +532,27 @@ def upsert_vocab_card(
         if mnemonic_norm and row.get("Mnemonic", "") != mnemonic_norm:
             row["Mnemonic"] = mnemonic_norm
             changed = True
+
+        # Ensure spaced-repetition fields exist.
+        row.setdefault("Stage", "0")
+        row.setdefault("LastReviewAt", "-")
+        row.setdefault("NextReviewAt", "-")
+        row.setdefault("CorrectStreak", "0")
+        row.setdefault("TotalReviews", "0")
+
         if test_errors is not None and row.get("TestErrors", "0") != str(test_errors):
-            row["TestErrors"] = str(test_errors)
+            row["TestErrors"] = str(max(0, int(test_errors)))
             changed = True
         if changed:
             row["LastUpdatedAt"] = updated_at
         return changed
 
-    rows.append(
-        {
-            "Vocabulary": collapse_ws(vocab),
-            "Mnemonic": collapse_ws(mnemonic),
-            "TestErrors": str(test_errors if test_errors is not None else 0),
-            "LastUpdatedAt": updated_at,
-        }
-    )
+    card = empty_vocab_card(vocab, mnemonic)
+    if test_errors is not None:
+        card["TestErrors"] = str(max(0, int(test_errors)))
+    card["LastUpdatedAt"] = updated_at
+    rows.append(card)
     return True
-
 
 def sync_vocab_csv_errors(
     csv_path: Path,
@@ -493,19 +580,14 @@ def sync_vocab_csv_errors(
             continue
 
         if create_missing and row.misses > 0:
-            cards.append(
-                {
-                    "Vocabulary": row.text,
-                    "Mnemonic": "",
-                    "TestErrors": str(row.misses),
-                    "LastUpdatedAt": ts,
-                }
-            )
+            card = empty_vocab_card(row.text)
+            card["TestErrors"] = str(row.misses)
+            card["LastUpdatedAt"] = ts
+            cards.append(card)
             changed = True
 
     if changed:
         write_vocab_cards(csv_path, cards)
-
 
 def token_count(text: str) -> int:
     return len(re.findall(r"[A-Za-z][A-Za-z'\-]*", text))
@@ -926,6 +1008,95 @@ def select_for_test(rows: list[RepoRow], count: int, rng: random.Random) -> list
     return pool[:count]
 
 
+def card_map_by_key(cards: list[dict[str, str]]) -> dict[str, dict[str, str]]:
+    out: dict[str, dict[str, str]] = {}
+    for c in cards:
+        key = collapse_ws(c.get("Vocabulary", "")).lower()
+        if key:
+            out[key] = c
+    return out
+
+
+def stage_interval_days(stage: int) -> int:
+    return EBBINGHAUS_DAYS[clamp_stage(stage)]
+
+
+def apply_vocab_review(
+    cards: list[dict[str, str]],
+    cards_map: dict[str, dict[str, str]],
+    vocab: str,
+    review_dt: datetime,
+    correct: bool,
+) -> bool:
+    key = collapse_ws(vocab).lower()
+    if not key:
+        return False
+
+    row = cards_map.get(key)
+    if not row:
+        row = empty_vocab_card(vocab)
+        cards.append(row)
+        cards_map[key] = row
+
+    stage = clamp_stage(_to_int(row.get("Stage", "0")))
+    streak = max(0, _to_int(row.get("CorrectStreak", "0")))
+    total_reviews = max(0, _to_int(row.get("TotalReviews", "0"))) + 1
+    errors = max(0, _to_int(row.get("TestErrors", "0")))
+
+    if correct:
+        stage = clamp_stage(stage + 1)
+        streak += 1
+    else:
+        stage = clamp_stage(stage - 1)
+        streak = 0
+        errors += 1
+
+    next_dt = review_dt + timedelta(days=stage_interval_days(stage))
+    row["Stage"] = str(stage)
+    row["CorrectStreak"] = str(streak)
+    row["TotalReviews"] = str(total_reviews)
+    row["TestErrors"] = str(errors)
+    row["LastReviewAt"] = dt_to_iso(review_dt)
+    row["NextReviewAt"] = dt_to_iso(next_dt)
+    row["LastUpdatedAt"] = dt_to_iso(review_dt)
+    return True
+
+
+def select_due_vocab_for_test(
+    vocab_rows: list[RepoRow],
+    cards_map: dict[str, dict[str, str]],
+    count: int,
+    now_dt: datetime,
+) -> list[RepoRow]:
+    if count <= 0:
+        return []
+
+    scored: list[tuple[float, RepoRow]] = []
+    for row in vocab_rows:
+        card = cards_map.get(row.key)
+        if not card:
+            score = 10000.0 + row.misses * 100
+            scored.append((score, row))
+            continue
+
+        next_dt = parse_iso_utc(card.get("NextReviewAt", ""))
+        stage = clamp_stage(_to_int(card.get("Stage", "0")))
+        errors = max(0, _to_int(card.get("TestErrors", "0")))
+
+        if not next_dt:
+            score = 9000.0 + row.misses * 100 + errors * 10 + (MAX_STAGE - stage)
+            scored.append((score, row))
+            continue
+
+        if next_dt <= now_dt:
+            overdue_hours = (now_dt - next_dt).total_seconds() / 3600
+            score = overdue_hours + row.misses * 100 + errors * 10 + (MAX_STAGE - stage)
+            scored.append((score, row))
+
+    scored.sort(key=lambda x: x[0], reverse=True)
+    return [row for _, row in scored[:count]]
+
+
 def cmd_test_mode(args: argparse.Namespace) -> None:
     user_path = Path(args.user)
     vocab_path = Path(args.vocab_repo)
@@ -937,7 +1108,17 @@ def cmd_test_mode(args: argparse.Namespace) -> None:
     stenc_rows = parse_repo(stenc_path, "sentence")
 
     rng = random.Random(args.seed)
-    picked_vocab = select_for_test(vocab_rows, args.vocab_count, rng)
+    cards = read_vocab_cards(vocabs_csv_path)
+    cards_map = card_map_by_key(cards)
+    now_dt = datetime.now(timezone.utc)
+
+    picked_vocab = select_due_vocab_for_test(vocab_rows, cards_map, args.vocab_count, now_dt)
+    if len(picked_vocab) < args.vocab_count:
+        picked_keys = {r.key for r in picked_vocab}
+        remaining_vocab = [r for r in vocab_rows if r.key not in picked_keys]
+        fill = select_for_test(remaining_vocab, args.vocab_count - len(picked_vocab), rng)
+        picked_vocab.extend(fill)
+
     picked_stenc = select_for_test(stenc_rows, args.sentence_count, rng)
 
     lines = ["# Test Mode (Multiple Choice)", ""]
@@ -980,7 +1161,7 @@ def cmd_test_mode(args: argparse.Namespace) -> None:
 
     lines.append("Answer format:")
     lines.append("- Single-choice: 1A 3C ...")
-    lines.append("Use `mark-missed` after checking answers to increase misses for weak items.")
+    lines.append("Use `mark-correct` / `mark-missed` after checking answers to update memory stage.")
     print("\n".join(lines).strip() + "\n")
 
     if args.dry_run:
@@ -1019,11 +1200,14 @@ def cmd_mark_missed(args: argparse.Namespace) -> None:
 
     vocab_rows = parse_repo(vocab_path, "vocab")
     stenc_rows = parse_repo(stenc_path, "sentence")
+    cards = read_vocab_cards(vocabs_csv_path)
+    cards_map = card_map_by_key(cards)
 
     vocab_map = {r.key: r for r in vocab_rows}
     stenc_map = {r.key: r for r in stenc_rows}
 
-    ts = now_iso()
+    review_dt = datetime.now(timezone.utc)
+    ts = dt_to_iso(review_dt)
     hit_vocab = 0
     hit_stenc = 0
 
@@ -1033,6 +1217,7 @@ def cmd_mark_missed(args: argparse.Namespace) -> None:
         if row:
             row.misses += 1
             row.last_reviewed = ts
+            apply_vocab_review(cards, cards_map, row.text, review_dt, correct=False)
             hit_vocab += 1
 
     for s in args.sentence or []:
@@ -1045,6 +1230,7 @@ def cmd_mark_missed(args: argparse.Namespace) -> None:
 
     write_repo(vocab_path, "vocab", vocab_rows)
     write_repo(stenc_path, "sentence", stenc_rows)
+    write_vocab_cards(vocabs_csv_path, cards)
     sync_vocab_csv_errors(vocabs_csv_path, vocab_rows, ts=ts, create_missing=True)
 
     profile, session = read_user_md(user_path)
@@ -1053,6 +1239,40 @@ def cmd_mark_missed(args: argparse.Namespace) -> None:
 
     print(f"updated misses: vocab={hit_vocab}, sentence={hit_stenc}")
 
+
+def cmd_mark_correct(args: argparse.Namespace) -> None:
+    user_path = Path(args.user)
+    vocab_path = Path(args.vocab_repo)
+    stenc_path = Path(args.stenc_repo)
+    vocabs_csv_path = Path(args.vocabs_csv)
+    ensure_state(user_path, vocab_path, stenc_path, vocabs_csv_path, quiet=True)
+
+    vocab_rows = parse_repo(vocab_path, "vocab")
+    cards = read_vocab_cards(vocabs_csv_path)
+    cards_map = card_map_by_key(cards)
+    vocab_map = {r.key: r for r in vocab_rows}
+
+    review_dt = datetime.now(timezone.utc)
+    ts = dt_to_iso(review_dt)
+    hit_vocab = 0
+
+    for w in args.word or []:
+        key = collapse_ws(w).lower()
+        row = vocab_map.get(key)
+        if row:
+            row.last_reviewed = ts
+            apply_vocab_review(cards, cards_map, row.text, review_dt, correct=True)
+            hit_vocab += 1
+
+    write_repo(vocab_path, "vocab", vocab_rows)
+    write_vocab_cards(vocabs_csv_path, cards)
+    sync_vocab_csv_errors(vocabs_csv_path, vocab_rows, ts=ts, create_missing=False)
+
+    profile, session = read_user_md(user_path)
+    session["Last Updated At"] = ts
+    write_user_md(user_path, profile, session)
+
+    print(f"updated correct: vocab={hit_vocab}")
 
 def cmd_save_cards(args: argparse.Namespace) -> None:
     user_path = Path(args.user)
@@ -1133,6 +1353,9 @@ def build_parser() -> argparse.ArgumentParser:
     mark.add_argument("--word", action="append", default=[])
     mark.add_argument("--sentence", action="append", default=[])
 
+    mark_correct = sub.add_parser("mark-correct", help="Mark correctly recalled vocabulary items")
+    mark_correct.add_argument("--word", action="append", default=[])
+
     save_cards = sub.add_parser("save-cards", help="Extract Vocabulary+Mnemonic pairs into vocabs.csv")
     save_cards.add_argument("--input", action="append", default=[], help="Card text block; can repeat")
     save_cards.add_argument("--file", help="Markdown/text file that contains card output")
@@ -1157,6 +1380,8 @@ def main() -> None:
         cmd_test_mode(args)
     elif args.command == "mark-missed":
         cmd_mark_missed(args)
+    elif args.command == "mark-correct":
+        cmd_mark_correct(args)
     elif args.command == "save-cards":
         cmd_save_cards(args)
     else:

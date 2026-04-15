@@ -1,4 +1,4 @@
-# Portable Core (Claude/Codex Future)
+# Portable Core (Multi-Agent)
 
 ## Core Behavior
 - Route input into `vocabulary`, `sentence`, or `paragraph` mode.
@@ -11,10 +11,15 @@
 - Field names and order inside each mode.
 - Structure tags for sentence analysis.
 - Paragraph logic sections.
+- Test mode check/update workflow.
 
 ## Adapter Strategy
-- Codex adapter: `SKILL.md` + `agents/openai.yaml`.
-- Claude adapter (future): reuse same contracts and route logic.
+- Canonical core: `skills/learn-eng/`
+- Codex entry: `skills/codex/learn-eng` (points to core)
+- Claude entry: `skills/claude/learn-eng` (points to core)
+- OpenClaw entry: `skills/openclaw/learn-eng` (points to core)
+
+When a platform needs custom behavior, fork only adapter-specific files and keep output contracts synchronized.
 
 ## Do Not Carry Forward
 - Jailbreak/persona coercion.

@@ -94,7 +94,6 @@ Vocabulary questions:
 - One vocabulary item -> one question only.
 - Single-choice meaning MCQ (`A/B/C`).
 - No synonym multi-select by default.
-- Multi-select options should be randomized.
 
 Long-sentence questions:
 - Show original sentence text first.
@@ -102,6 +101,11 @@ Long-sentence questions:
   - Meaning
   - Function of highlighted chunk
   - Detail check (scope/negation/condition/modifier target)
+
+Ebbinghaus loop (vocabulary only):
+- Track `Stage`, `LastReviewAt`, `NextReviewAt`, `CorrectStreak`, `TotalReviews` in `vocabs.csv`.
+- Due rule: `NextReviewAt <= now` first.
+- Correct answer -> stage up; missed answer -> stage down.
 
 ## Revision Rules
 Command: `/revise <scope> <instruction>`
